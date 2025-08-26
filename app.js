@@ -1,70 +1,64 @@
-// let p = fetch(`${url}${query}&apiKey=${API_KEY}`);
-// p.then((response) => response.json())
-// .then((data) => console.log(data));
-
-const API_KEY = "73214130c4b94a44b3229917cad156fa";
-const url = "https://newsapi.org/v2/everything?q=";
-// let query = "Virat Kohli";
-
+// Fetch News from Netlify Function
 const fetchNews = async (query) => {
-    let response = await fetch(`${url}${query}&apiKey=${API_KEY}`);
-    let data = await response.json();
-    bindData(data.articles);
-}
+    try {
+        let response = await fetch(`/.netlify/functions/getNews?query=${query}`);
+        if (!response.ok) throw new Error(`Error: ${response.status}`);
+        let data = await response.json();
+        bindData(data.articles);
+    } catch (error) {
+        console.error("Failed to fetch news:", error);
+        document.getElementById('card-container').innerHTML =
+            `<p class="error">Could not load articles. Please try again later.</p>`;
+    }
+};
 
-const bindData = (article) => {
-    // console.log(article);
+// Bind articles to cards
+const bindData = (articles) => {
     let cardContainer = document.getElementById('card-container');
+    cardContainer.innerHTML = ""; // clear old articles
     
-    let cardHtml = ``;
+    if (!articles || articles.length === 0) {
+        cardContainer.innerHTML = `<p class="no-results">No articles found.</p>`;
+        return;
+    }
 
-    for (item in article) {
-        if (!article[item].urlToImage) continue;
+    let cardHtml = "";
 
-        let date = new Date(article[item].publishedAt).toLocaleString("en-US", {
-            timeZone: "Asia/Jakarta",
+    for (let item of articles) {
+        if (!item.urlToImage) continue;
+
+        let date = new Date(item.publishedAt).toLocaleString("en-US", {
+            timeZone: "Asia/Kolkata",
         });
 
         cardHtml += `
-
             <div class="card">
-            
-                <img src="${article[item].urlToImage}" class="card-img-top" alt="...">
-
+                <img src="${item.urlToImage}" class="card-img-top" alt="News Image">
                 <div class="card-body">
-
-                    <h5 class="card-title">${article[item].title}</h5>
-
-                    <p class="source-and-time">${article[item].source.name} | ${date}</p>
-
-                    <p class="card-text">${article[item].content}</p>
-
-                    <a href="${article[item].url}" class="btn btn-primary" target="_blank">Read More</a>
-
+                    <h5 class="card-title">${item.title}</h5>
+                    <p class="source-and-time">${item.source.name} | ${date}</p>
+                    <p class="card-text">${item.description || ""}</p>
+                    <a href="${item.url}" class="btn btn-primary" target="_blank">Read More</a>
                 </div>
-        
             </div>
         `;
-
     }
+
     cardContainer.innerHTML = cardHtml;
+};
 
-}
-
-// Getting Query Values 
-// 1. From Navbar Links 
+// Navbar category click
 const navLinkClick = (value) => fetchNews(value);
 
-// 2. Search Bar 
-
-// let searchBtn = document.getElementById('search-btn');
-
+// Search
 let searchClick = () => {
     let searchBar = document.getElementById('search-bar');
-    let data = searchBar.value;
-    fetchNews(data);
-    searchBar.innerText = "";
-}
+    let data = searchBar.value.trim();
+    if (data) {
+        fetchNews(data);
+        searchBar.value = ""; // ✅ fixed
+    }
+};
 
-// 3. On Window Loading 
-window.addEventListener('load', fetchNews('General'));
+// Load default news
+window.addEventListener('load', () => fetchNews('General'));
