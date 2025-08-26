@@ -1,10 +1,11 @@
-const fetch = require("node-fetch");
+// netlify/functions/getNews.js
+import fetch from "node-fetch";
 
-exports.handler = async (event) => {
-  const API_KEY = "YOUR_NEWSAPI_KEY";
-  const category = event.queryStringParameters.category || "general";
+export async function handler(event, context) {
+  const API_KEY = "73214130c4b94a44b3229917cad156fa";
+  const query = event.queryStringParameters.query || "India";
 
-  const url = `https://newsapi.org/v2/top-headlines?country=us&category=${category}&apiKey=${API_KEY}`;
+  const url = `https://newsapi.org/v2/everything?q=${query}&apiKey=${API_KEY}`;
 
   try {
     const response = await fetch(url);
@@ -13,6 +14,9 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       body: JSON.stringify(data),
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
     };
   } catch (err) {
     return {
@@ -20,4 +24,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: err.message }),
     };
   }
-};
+}

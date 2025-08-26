@@ -1,0 +1,24 @@
+{
+  "name": "pigeonpress",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "![](ScreenShot.png)",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kumarrishi4981/pigeon_press.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kumarrishi4981/pigeon_press/issues"
+  },
+  "homepage": "https://github.com/kumarrishi4981/pigeon_press#readme",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
