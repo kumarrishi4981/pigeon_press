@@ -1,27 +1,30 @@
-// netlify/functions/getNews.js
-import fetch from "node-fetch";
+const fetch = require("node-fetch");
 
-export async function handler(event, context) {
-  const API_KEY = "73214130c4b94a44b3229917cad156fa";
-  const query = event.queryStringParameters.query || "India";
-
-  const url = `https://newsapi.org/v2/everything?q=${query}&apiKey=${API_KEY}`;
-
+exports.handler = async (event) => {
   try {
+    const query = event.queryStringParameters.query || "General";
+    const API_KEY = "f28674b5cd8e0d0741c9d04b75d5bd8f"; 
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&country=in&max=10&apikey=${API_KEY}`;
+
     const response = await fetch(url);
     const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ error: data.message || "Failed to fetch news" }),
+      };
+    }
 
     return {
       statusCode: 200,
       body: JSON.stringify(data),
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-      },
     };
-  } catch (err) {
+  } catch (error) {
+    console.error("Function error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
+      body: JSON.stringify({ error: "Internal Server Error" }),
     };
   }
-}
+};

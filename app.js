@@ -16,7 +16,7 @@ const fetchNews = async (query) => {
 const bindData = (articles) => {
     let cardContainer = document.getElementById('card-container');
     cardContainer.innerHTML = ""; // clear old articles
-    
+
     if (!articles || articles.length === 0) {
         cardContainer.innerHTML = `<p class="no-results">No articles found.</p>`;
         return;
@@ -25,7 +25,7 @@ const bindData = (articles) => {
     let cardHtml = "";
 
     for (let item of articles) {
-        if (!item.urlToImage) continue;
+        if (!item.image) continue; // ✅ GNews uses "image"
 
         let date = new Date(item.publishedAt).toLocaleString("en-US", {
             timeZone: "Asia/Kolkata",
@@ -33,10 +33,10 @@ const bindData = (articles) => {
 
         cardHtml += `
             <div class="card">
-                <img src="${item.urlToImage}" class="card-img-top" alt="News Image">
+                <img src="${item.image}" class="card-img-top" alt="News Image">
                 <div class="card-body">
                     <h5 class="card-title">${item.title}</h5>
-                    <p class="source-and-time">${item.source.name} | ${date}</p>
+                    <p class="source-and-time">${item.source?.name || "Unknown"} | ${date}</p>
                     <p class="card-text">${item.description || ""}</p>
                     <a href="${item.url}" class="btn btn-primary" target="_blank">Read More</a>
                 </div>
@@ -56,7 +56,7 @@ let searchClick = () => {
     let data = searchBar.value.trim();
     if (data) {
         fetchNews(data);
-        searchBar.value = ""; // ✅ fixed
+        searchBar.value = ""; // ✅ clear search
     }
 };
 
