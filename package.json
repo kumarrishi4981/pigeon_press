@@ -17,8 +17,5 @@
   "bugs": {
     "url": "https://github.com/kumarrishi4981/pigeon_press/issues"
   },
-  "homepage": "https://github.com/kumarrishi4981/pigeon_press#readme",
-  "dependencies": {
-    "node-fetch": "^3.3.2"
-  }
+  "homepage": "https://github.com/kumarrishi4981/pigeon_press#readme"
 }
