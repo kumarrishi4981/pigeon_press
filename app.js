@@ -1,12 +1,13 @@
 // =====================================================
-//  PigeonPress — Powered by GNews.io API (Free)
-//  Sign up at https://gnews.io to get your free API key
-//  Paste your key below 👇
+//  PigeonPress — News App
+//  Local:      Direct GNews API (CORS allowed on localhost)
+//  Production: Netlify Function proxy (no CORS issues)
 // =====================================================
-const API_KEY = "3fd70ca553d31d5b7675095d1f8f37ea";
+
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_KEY = "3fd70ca553d31d5b7675095d1f8f37ea"; // used only on localhost
 const BASE = "https://gnews.io/api/v4";
 
-// Map navbar categories to GNews topics
 const TOPIC_MAP = {
     india: "nation",
     sports: "sports",
@@ -15,7 +16,7 @@ const TOPIC_MAP = {
     general: "breaking-news",
 };
 
-// In-memory cache to avoid re-fetching same query
+// In-memory cache to save API quota
 const cache = {};
 
 // ── Main fetch function ────────────────────────────────────────────────────────
@@ -27,46 +28,50 @@ const fetchNews = async (query) => {
             <p>Loading articles...</p>
         </div>`;
 
-    // Serve from cache if available (avoids wasting free quota)
-    if (cache[query]) {
-        bindData(cache[query], query);
+    const cacheKey = query.toLowerCase();
+    if (cache[cacheKey]) {
+        bindData(cache[cacheKey], query);
         return;
     }
 
     try {
-        const key = query.toLowerCase();
-        let url1, url2;
+        let articles = [];
 
-        if (TOPIC_MAP[key]) {
-            const base = `${BASE}/top-headlines?topic=${TOPIC_MAP[key]}&lang=en&country=in&max=6&apikey=${API_KEY}`;
-            url1 = base + `&page=1`;
-            url2 = base + `&page=2`;
+        if (IS_LOCAL) {
+            // ── LOCAL: call GNews API directly ──────────────────────────────
+            const key = query.toLowerCase();
+            let url1, url2;
+
+            if (TOPIC_MAP[key]) {
+                const base = `${BASE}/top-headlines?topic=${TOPIC_MAP[key]}&lang=en&country=in&max=6&apikey=${API_KEY}`;
+                url1 = base + "&page=1";
+                url2 = base + "&page=2";
+            } else {
+                const base = `${BASE}/search?q=${encodeURIComponent(query)}&lang=en&country=in&max=6&sortby=publishedAt&apikey=${API_KEY}`;
+                url1 = base + "&page=1";
+                url2 = base + "&page=2";
+            }
+
+            const [res1, res2] = await Promise.all([fetch(url1), fetch(url2)]);
+
+            if (res1.status === 403) throw new Error("Invalid API key.");
+            if (res1.status === 429) throw new Error("Daily limit reached (100 req/day on free plan).");
+            if (!res1.ok) throw new Error(`GNews API Error: ${res1.status}`);
+
+            const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+            articles = [...(data1.articles || []), ...(data2.articles || [])];
+
         } else {
-            const base = `${BASE}/search?q=${encodeURIComponent(query)}&lang=en&country=in&max=6&sortby=publishedAt&apikey=${API_KEY}`;
-            url1 = base + `&page=1`;
-            url2 = base + `&page=2`;
+            // ── PRODUCTION: call Netlify function (no CORS issues) ──────────
+            const res = await fetch(`/.netlify/functions/getNews?query=${encodeURIComponent(query)}`);
+
+            if (!res.ok) throw new Error(`Function error: ${res.status}`);
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            articles = data.articles || [];
         }
 
-        // Fetch both pages in parallel
-        const [res1, res2] = await Promise.all([fetch(url1), fetch(url2)]);
-
-        if (res1.status === 403 || res2.status === 403) {
-            throw new Error("Invalid API key. Please check your GNews API key in app.js");
-        }
-        if (res1.status === 429 || res2.status === 429) {
-            throw new Error("Daily request limit reached. GNews free plan allows 100 requests/day.");
-        }
-        if (!res1.ok) throw new Error(`HTTP Error: ${res1.status}`);
-
-        const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
-
-        // Merge both pages (12 articles total)
-        const articles = [
-            ...(data1.articles || []),
-            ...(data2.articles || [])
-        ];
-
-        cache[query] = articles;
+        cache[cacheKey] = articles;
         bindData(articles, query);
 
     } catch (err) {
@@ -118,7 +123,7 @@ const bindData = (articles, query) => {
     cardContainer.innerHTML = html;
 };
 
-// ── Navigation click (no page reload) ─────────────────────────────────────────
+// ── Navigation ─────────────────────────────────────────────────────────────────
 const navLinkClick = (value) => {
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     event.target.classList.add('active');
@@ -135,12 +140,11 @@ const searchClick = () => {
     }
 };
 
-// Enter key in search bar
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('search-bar')?.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); searchClick(); }
     });
 });
 
-// ── Load on startup ────────────────────────────────────────────────────────────
+// ── Load default ───────────────────────────────────────────────────────────────
 window.addEventListener('load', () => fetchNews('india'));
